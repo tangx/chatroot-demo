@@ -1,2 +1,16 @@
 # chatroot-demo
-chatroot demo practice
+
+聊天室 练习
+
+## todo
+
+1. 整理需求
+2. 拆分模块
+3. 构建代码
+
+### 1. 整理需求
+
+1. 用户登陆
+2. Server消息广播
+3. 用户在线超时
+
