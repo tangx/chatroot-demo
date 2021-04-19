@@ -43,28 +43,34 @@ func (s *Server) Handler(conn net.Conn) {
 	user := NewUser(conn)
 
 	// 2. 用户注册
-	uniquename := user.UniqueName()
-	s.Signin(uniquename, user)
+	name := user.UniqueName()
+	s.Signin(name, user)
 
 	// 3. 广播登录信息
-	msg := fmt.Sprintf("%s login\n", uniquename)
-	s.BroadCastChan <- msg
+	msg := fmt.Sprintf("用户 %s 已上线\n", name)
+	s.BroadCast(name, msg)
 
 	// 4. 用户接受消息
-	go user.Receive()
+	go user.ListenMessage()
 
 }
 
-func (s *Server) BroadCast() {
+func (s *Server) ListenMessager() {
 	for {
 		// 1. 获取 msg。 无则阻塞
 		msg := <-s.BroadCastChan
 		// 2. 遍历所有用户， 并发送消息
 		for _, user := range s.OnlineUsers {
 			user.MsgChan <- msg
-			// user.conn.Write([]byte(msg))
 		}
 	}
+}
+
+// BroadCast 广播
+func (s *Server) BroadCast(name string, msg string) {
+	msg = fmt.Sprintf("%s: %s", name, msg)
+	s.BroadCastChan <- msg
+
 }
 
 // Start 启动服务
@@ -80,7 +86,7 @@ func (s *Server) Start() {
 	defer listener.Close()
 
 	// 2. 监听广播
-	go s.BroadCast()
+	go s.ListenMessager()
 
 	// 3. 提供服务
 	for {
