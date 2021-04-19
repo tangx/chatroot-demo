@@ -1,6 +1,9 @@
 package server
 
-import "net"
+import (
+	"fmt"
+	"net"
+)
 
 type User struct {
 	Name    string
@@ -50,5 +53,20 @@ func (u *User) Offline() {
 
 // DoMessage 发送消息
 func (u *User) DoMessage(msg string) {
+	// 指令只发送给自己
+	if msg == "who" {
+		who := ""
+		for _, user := range u.server.OnlineUsers {
+			who += fmt.Sprintf("[%s]%s : 在线\n", user.Addr, user.Name)
+		}
+		u.SendMessage(who)
+		return
+	}
+
 	u.server.BroadCast(u, msg)
+}
+
+// SendMessage 给自己发送消息
+func (u *User) SendMessage(msg string) {
+	u.conn.Write([]byte(msg))
 }
