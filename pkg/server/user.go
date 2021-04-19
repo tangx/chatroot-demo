@@ -10,8 +10,11 @@ type User struct {
 }
 
 func NewUser(conn net.Conn) *User {
+	addr := conn.RemoteAddr().String()
 	user := &User{
 		MsgChan: make(chan string),
+		Name:    addr,
+		Addr:    addr,
 		conn:    conn,
 	}
 	return user
