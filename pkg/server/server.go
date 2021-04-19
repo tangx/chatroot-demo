@@ -30,26 +30,16 @@ func NewServer(ip string, port uint16) *Server {
 	return server
 }
 
-// Signin 用户登录
-func (s *Server) Signin(unique string, user *User) {
-	s.OnlineUsers[unique] = user
-}
-
 // Handler 用户连接初始化
 func (s *Server) Handler(conn net.Conn) {
 	addr := conn.RemoteAddr().String()
 	logrus.Infof("%s connected\n", addr)
 
 	// 1. 创建用户
-	user := NewUser(conn)
+	user := NewUser(conn, s)
 
 	// 2. 用户注册
-	name := user.UniqueName()
-	s.Signin(name, user)
-
-	// 3. 广播登录信息
-	msg := fmt.Sprintf("用户 %s 已上线\n", name)
-	s.BroadCast(user, msg)
+	user.Online()
 
 	// 4. 用户接受消息
 	go user.ListenMessage()
@@ -61,7 +51,7 @@ func (s *Server) Handler(conn net.Conn) {
 		for {
 			n, err := conn.Read(buf)
 			if n == 0 {
-				s.BroadCast(user, "已下线")
+				user.Offline()
 				return
 			}
 
@@ -72,7 +62,7 @@ func (s *Server) Handler(conn net.Conn) {
 
 			// 发送用户消息, 不发送 '\n'
 			msg := buf[:n-1]
-			s.BroadCast(user, string(msg))
+			user.DoMessage(string(msg))
 		}
 
 	}()
