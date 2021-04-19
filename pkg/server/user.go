@@ -3,6 +3,8 @@ package server
 import (
 	"fmt"
 	"net"
+	"regexp"
+	"strings"
 )
 
 type User struct {
@@ -41,19 +43,25 @@ func (u *User) ListenMessage() {
 
 // Online 用户上线 并 广播消息
 func (u *User) Online() {
+	u.server.userlock.Lock()
+	defer u.server.userlock.Unlock()
+
 	u.server.OnlineUsers[u.Name] = u
 	u.server.BroadCast(u, "上线")
 }
 
 // Offline 用户下线 并 广播消息
 func (u *User) Offline() {
+	u.server.userlock.Lock()
+	defer u.server.userlock.Unlock()
+
 	delete(u.server.OnlineUsers, u.Name)
 	u.server.BroadCast(u, "下线")
 }
 
 // DoMessage 发送消息
 func (u *User) DoMessage(msg string) {
-	// 指令只发送给自己
+	// 查询在线用户
 	if msg == "who" {
 		who := ""
 		for _, user := range u.server.OnlineUsers {
@@ -63,10 +71,42 @@ func (u *User) DoMessage(msg string) {
 		return
 	}
 
+	// 修改用户名
+	ok, err := regexp.MatchString(`rename\|`, msg)
+	if err != nil {
+		u.SendMessage(fmt.Sprintf("somethine eroor: %v", err))
+	}
+	if ok {
+		parts := strings.Split(msg, "|")
+		name := parts[len(parts)-1]
+
+		if _, ok := u.server.OnlineUsers[name]; ok {
+			u.SendMessage(fmt.Sprintf("用户名 %s 已存在", name))
+			return
+		}
+
+		u.Rename(name)
+		u.server.BroadCast(u, "已改名")
+
+		return
+	}
+
+	// 广播发送消息
 	u.server.BroadCast(u, msg)
 }
 
 // SendMessage 给自己发送消息
 func (u *User) SendMessage(msg string) {
 	u.conn.Write([]byte(msg))
+}
+
+// Rename 修改用户名
+func (u *User) Rename(name string) {
+	u.server.userlock.Lock()
+	defer u.server.userlock.Unlock()
+
+	delete(u.server.OnlineUsers, u.Name)
+	u.Name = name
+	u.server.OnlineUsers[u.Name] = u
+
 }

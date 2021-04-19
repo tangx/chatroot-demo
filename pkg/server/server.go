@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 )
@@ -13,6 +14,7 @@ type Server struct {
 	Port   uint16
 
 	// 在线用户
+	userlock    sync.RWMutex
 	OnlineUsers map[string]*User
 
 	// 广播管道
@@ -82,7 +84,7 @@ func (s *Server) ListenMessager() {
 
 // BroadCast 广播
 func (s *Server) BroadCast(user *User, msg string) {
-	msg = fmt.Sprintf("%s: %s\n", user.Name, msg)
+	msg = fmt.Sprintf("[%s]%s: %s\n", user.Addr, user.Name, msg)
 	s.BroadCastChan <- msg
 
 }
