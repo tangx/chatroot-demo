@@ -23,12 +23,10 @@ func (u *User) UniqueName() string {
 }
 
 // Recevie 接受消息
-func (u *User) Receive() {
+func (u *User) ListenMessage() {
 
 	for {
-		select {
-		case msg := <-u.MsgChan:
-			u.conn.Write([]byte(msg))
-		}
+		msg := <-u.MsgChan
+		u.conn.Write([]byte(msg))
 	}
 }
