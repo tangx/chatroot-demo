@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"os"
 
@@ -48,7 +49,7 @@ func (c *Client) PrivateChat() {}
 func (c *Client) UpdateName() {
 	var name string
 
-	fmt.Printf(">> ")
+	fmt.Printf("输入新用户名 >> ")
 	_, err := fmt.Scanln(&name)
 	if err != nil {
 		fmt.Printf("输入错误: %v", err)
@@ -56,13 +57,36 @@ func (c *Client) UpdateName() {
 
 	msg := fmt.Sprintf("rename|%s", name)
 
-	_, err = c.conn.Write([]byte(msg))
+	err = c.sendMessage(msg)
 	if err != nil {
 		fmt.Printf("update name failed: %v \n", err)
 		return
 	}
 
 	fmt.Printf("update name success")
+}
+
+// Recevier 消息接收器
+func (c *Client) Recevier() {
+	// 以下命令永久阻塞，并监听隧道获取消息
+	_, err := io.Copy(os.Stdout, c.conn)
+	if err != nil {
+		logrus.Fatalf("Recevie Message failed: %v", err)
+	}
+
+	/* 以上命令等价于 */
+	// for {
+	// 	content := make([]byte, 4096)
+	// 	_, err := c.conn.Read(content)
+	// 	fmt.Println(content)
+	// }
+}
+
+func (c *Client) sendMessage(msg string) error {
+	msg = fmt.Sprintf("%s\n", msg)
+	_, err := c.conn.Write([]byte(msg))
+	return err
+
 }
 
 func (c *Client) menu() {
@@ -76,7 +100,11 @@ func (c *Client) menu() {
 
 	fmt.Println(str)
 	var choice string
-	_, err := fmt.Scanln(&choice)
+	n, err := fmt.Scanln(&choice)
+	// 用户输入空行空行
+	if n == 0 {
+		return
+	}
 	if err != nil {
 		logrus.Warnf("input failed, err: %v", err)
 	}
@@ -91,5 +119,4 @@ func (c *Client) menu() {
 	case "3":
 		c.UpdateName()
 	}
-
 }

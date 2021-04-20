@@ -22,6 +22,9 @@ func Execute() {
 		logrus.Fatalf("dial server failed, err: %v", err)
 	}
 
+	// 启动协程 获取消息
+	go client.Recevier()
+
 	for {
 		client.menu()
 	}
