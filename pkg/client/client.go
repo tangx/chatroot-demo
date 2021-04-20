@@ -40,6 +40,38 @@ func (c *Client) Dial() error {
 // PublicChat 公聊模式
 func (c *Client) PublicChat() {
 
+	for {
+
+		fmt.Printf("输入聊天信息 /h >>> ")
+		msg := input()
+		if len(msg) == 0 {
+			continue
+		}
+
+		// 指令解析: 以 / 开头的信息为指令'
+		help := `帮助信息:
+	/h: 获取帮助
+	/exit: 退出当前模式
+	/who: 查询在线用户`
+
+		switch msg {
+		case "/h":
+			fmt.Println(help)
+			continue
+		case "/exit":
+			return
+		case "/who":
+			_ = c.sendMessage("who")
+			continue
+		}
+
+		// 发送消息
+		err := c.sendMessage(msg)
+		if err != nil {
+			fmt.Printf("消息发送失败: %v \n", err)
+		}
+
+	}
 }
 
 // PrivateChat 私聊模式
@@ -47,23 +79,17 @@ func (c *Client) PrivateChat() {}
 
 // UpdateName 更新用户名
 func (c *Client) UpdateName() {
-	var name string
 
 	fmt.Printf("输入新用户名 >> ")
-	_, err := fmt.Scanln(&name)
-	if err != nil {
-		fmt.Printf("输入错误: %v", err)
-	}
+	name := input()
 
 	msg := fmt.Sprintf("rename|%s", name)
-
-	err = c.sendMessage(msg)
+	err := c.sendMessage(msg)
 	if err != nil {
-		fmt.Printf("update name failed: %v \n", err)
-		return
+		fmt.Printf("更新名字失败: %v \n", err)
 	}
 
-	fmt.Printf("update name success")
+	fmt.Println("更新名字成功")
 }
 
 // Recevier 消息接收器
@@ -82,6 +108,7 @@ func (c *Client) Recevier() {
 	// }
 }
 
+// sendMessage 发送消息
 func (c *Client) sendMessage(msg string) error {
 	msg = fmt.Sprintf("%s\n", msg)
 	_, err := c.conn.Write([]byte(msg))
@@ -119,4 +146,17 @@ func (c *Client) menu() {
 	case "3":
 		c.UpdateName()
 	}
+}
+
+func input() string {
+	var msg string
+	n, err := fmt.Scanln(&msg)
+	if n == 0 {
+		return "'"
+	}
+	if err != nil {
+		logrus.Errorf("scan input failed: %v", err)
+	}
+
+	return msg
 }
