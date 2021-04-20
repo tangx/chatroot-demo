@@ -22,5 +22,7 @@ func Execute() {
 		logrus.Fatalf("dial server failed, err: %v", err)
 	}
 
-	select {}
+	for {
+		client.menu()
+	}
 }
