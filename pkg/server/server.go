@@ -12,7 +12,7 @@ import (
 
 type Server struct {
 	Ipaddr string
-	Port   uint16
+	Port   int
 
 	// 在线用户
 	userlock    sync.RWMutex
@@ -22,7 +22,7 @@ type Server struct {
 	BroadCastChan chan string
 }
 
-func NewServer(ip string, port uint16) *Server {
+func NewServer(ip string, port int) *Server {
 	server := &Server{
 		Ipaddr:        ip,
 		Port:          port,
@@ -114,14 +114,15 @@ func (s *Server) BroadCast(user *User, msg string) {
 // Start 启动服务
 func (s *Server) Start() {
 	// 1. 监听
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", s.Ipaddr, s.Port))
+	listen := fmt.Sprintf("%s:%d", s.Ipaddr, s.Port)
+	listener, err := net.Listen("tcp", listen)
 	if err != nil {
 		logrus.Fatalf("Server start failed: %v", err)
-
 	}
-
 	// n. defer 关闭
 	defer listener.Close()
+
+	logrus.Infof("服务启动成功， 监听地址 %s", listen)
 
 	// 2. 监听广播
 	go s.ListenMessager()
