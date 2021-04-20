@@ -2,6 +2,11 @@
 
 聊天室 练习
 
+[bilibili 视频教程](https://www.bilibili.com/video/BV1gf4y1r79E?p=37)
+
+
+![](docs/img/arch.png)
+
 ## todo
 
 1. 整理需求
