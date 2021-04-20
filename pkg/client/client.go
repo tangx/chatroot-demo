@@ -61,8 +61,6 @@ func (c *Client) PublicChat() {
 		case "/exit":
 			return
 		case "/who":
-			_ = c.sendMessage("who")
-			continue
 		}
 
 		// 发送消息
