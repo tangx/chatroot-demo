@@ -1,10 +1,13 @@
 package client
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"net"
 	"os"
+	"regexp"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -52,15 +55,19 @@ func (c *Client) PublicChat() {
 		help := `帮助信息:
 	/h: 获取帮助
 	/exit: 退出当前模式
-	/who: 查询在线用户`
+	/who: 查询在线用户
+	/send>zhang3: 向 zhang3 发送私聊信息`
 
-		switch msg {
-		case "/h":
+		switch {
+		case msg == "/h":
 			fmt.Println(help)
 			continue
-		case "/exit":
+		case msg == "/exit":
 			return
-		case "/who":
+		case msg == "/who":
+			msg = "/who"
+		case c.privateMode(msg):
+			msg = c.PrivateChat(msg)
 		}
 
 		// 发送消息
@@ -72,8 +79,38 @@ func (c *Client) PublicChat() {
 	}
 }
 
+func (c *Client) privateMode(msg string) bool {
+	ok, err := regexp.MatchString(`^/send>`, msg)
+	if err != nil {
+		fmt.Printf("私聊模式匹配失败: %v", err)
+	}
+
+	return ok
+}
+
 // PrivateChat 私聊模式
-func (c *Client) PrivateChat() {}
+func (c *Client) PrivateChat(msg string) string {
+	// msg:= "/send>zhang3 你好啊"
+	parts := strings.Split(msg, " ")
+
+	if len(parts) < 2 {
+		fmt.Printf("私聊格式错误, ex: /send>zhang3 hello")
+		return ""
+	}
+
+	// 截取并还原消息
+	msg = strings.Join(parts[1:], " ")
+
+	// 获取用户名
+	parts = strings.Split(parts[0], ">")
+	remoteName := parts[1]
+
+	// 根据 server 定义私聊协议构建信息
+	// "to|name|message"
+	msg = fmt.Sprintf("to|%s|%s", remoteName, msg)
+	return msg
+
+}
 
 // UpdateName 更新用户名
 func (c *Client) UpdateName() {
@@ -119,8 +156,7 @@ func (c *Client) menu() {
 菜单:
 	0. 退出
 	1. 公聊模式
-	2. 私聊模式
-	3. 更新用户名
+	2. 更新用户名
 `
 
 	fmt.Println(str)
@@ -139,22 +175,37 @@ func (c *Client) menu() {
 		os.Exit(0)
 	case "1":
 		c.PublicChat()
-	case "2":
-		c.PrivateChat()
 	case "3":
 		c.UpdateName()
 	}
 }
 
 func input() string {
-	var msg string
-	n, err := fmt.Scanln(&msg)
-	if n == 0 {
-		return "'"
-	}
+
+	/*
+		注意:
+			fmt.Scanln 不是扫描一行。
+			而是遇到换行符即停止。
+			https://studygolang.com/articles/691
+	*/
+
+	// var msg string
+	// // n, err := fmt.Scanln(&msg)
+	// if n == 0 {
+	// 	return "'"
+	// }
+	// if err != nil {
+	// 	logrus.Errorf("scan input failed: %v", err)
+	// }
+
+	// return msg
+
+	reader := bufio.NewReader(os.Stdin)
+	strBytes, _, err := reader.ReadLine()
 	if err != nil {
-		logrus.Errorf("scan input failed: %v", err)
+		fmt.Printf("输入失败: %v", err)
+		return ""
 	}
 
-	return msg
+	return string(strBytes)
 }
