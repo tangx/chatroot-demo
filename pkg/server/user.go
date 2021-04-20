@@ -37,7 +37,7 @@ func (u *User) ListenMessage() {
 
 	for {
 		msg := <-u.MsgChan
-		u.conn.Write([]byte(msg))
+		_, _ = u.conn.Write([]byte(msg))
 	}
 }
 
@@ -97,7 +97,7 @@ func (u *User) DoMessage(msg string) {
 
 // SendMessage 给自己发送消息
 func (u *User) SendMessage(msg string) {
-	u.conn.Write([]byte(msg))
+	_, _ = u.conn.Write([]byte(msg))
 }
 
 // Rename 修改用户名

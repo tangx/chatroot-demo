@@ -49,7 +49,7 @@ func (s *Server) Handler(conn net.Conn) {
 	// 5. 服务器接受用户消息并广播
 	go func() {
 		buf := make([]byte, 4096)
-		// buf := []byte{} ????
+		// buf := []byte{} // ????
 		for {
 			n, err := conn.Read(buf)
 			if n == 0 {
