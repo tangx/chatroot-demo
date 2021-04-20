@@ -74,22 +74,14 @@ func (u *User) DoMessage(msg string) {
 	}
 
 	// 修改用户名
-	ok, err := regexp.MatchString(`rename\|`, msg)
-	if err != nil {
-		u.SendMessage(fmt.Sprintf("somethine eroor: %v", err))
+	if ok, _ := regexp.MatchString(`^rename\|`, msg); ok {
+		u.Rename(msg)
+		return
 	}
-	if ok {
-		parts := strings.Split(msg, "|")
-		name := parts[len(parts)-1]
 
-		if _, ok := u.server.OnlineUsers[name]; ok {
-			u.SendMessage(fmt.Sprintf("用户名 %s 已存在", name))
-			return
-		}
-
-		u.Rename(name)
-		u.server.BroadCast(u, "已改名")
-
+	// 私聊
+	if ok, _ := regexp.MatchString(`^to\|`, msg); ok {
+		u.PrivateMessage(msg)
 		return
 	}
 
@@ -97,13 +89,56 @@ func (u *User) DoMessage(msg string) {
 	u.server.BroadCast(u, msg)
 }
 
+func (u *User) PrivateMessage(msg string) {
+	parts := strings.Split(msg, "|")
+	if len(parts) < 3 {
+		u.SendMessage("消息格式错误， ex: to|zhang3|content")
+		return
+	}
+
+	who := parts[1]
+	remoteUser, ok := u.server.OnlineUsers[who]
+	if !ok {
+		u.SendMessage(fmt.Sprintf("系统消息: 用户 %s 不存在", who))
+		return
+	}
+
+	content := strings.Join(parts[2:], "|")
+	remoteUser.SendMessage(fmt.Sprintf("[%s]私聊你: %s\n", u.Name, content))
+
+}
+
 // SendMessage 给自己发送消息
 func (u *User) SendMessage(msg string) {
 	_, _ = u.conn.Write([]byte(msg))
 }
 
-// Rename 修改用户名
-func (u *User) Rename(name string) {
+// Rename 用户指令， 重命名
+func (u *User) Rename(msg string) {
+	parts := strings.Split(msg, "|")
+	if len(parts) < 2 {
+		u.SendMessage("rename 指令错误。 ex: rename|zhang31 \n")
+		return
+	}
+
+	name := parts[1]
+	if len(name) == 0 {
+		u.SendMessage("rename 指令错误。 用户名不能为空 \n")
+		return
+	}
+
+	if _, ok := u.server.OnlineUsers[name]; ok {
+		u.SendMessage(fmt.Sprintf("系统消息: 用户名 %s 已存在 \n", name))
+		return
+	}
+
+	u.rename(name)
+	u.server.BroadCast(u, "系统消息: 已改名")
+
+}
+
+// rename 修改用户名
+func (u *User) rename(name string) {
 	u.server.userlock.Lock()
 	defer u.server.userlock.Unlock()
 
@@ -120,9 +155,9 @@ func (u *User) Kickoff() {
 	// 删除在线记录
 	delete(u.server.OnlineUsers, u.Name)
 	// 发送通知
-	_, _ = u.conn.Write([]byte("长时间不活跃，你已经被系统踢下线"))
+	_, _ = u.conn.Write([]byte("系统消息: 长时间不活跃，你已经被系统踢下线"))
 	// 关闭链接
 	if err := u.conn.Close(); err != nil {
-		logrus.Errorf("close %s connect failed: %v", u.Addr, err)
+		logrus.Errorf("close %s connect failed: %v\n", u.Addr, err)
 	}
 }

@@ -67,6 +67,10 @@ func (s *Server) Handler(conn net.Conn) {
 
 			// 发送用户消息, 不发送 '\n'
 			msg := buf[:n-1]
+			if len(msg) == 0 {
+				// 不能发送空消息
+				continue
+			}
 			user.DoMessage(string(msg))
 
 			// 6.1 刷新计时器
@@ -79,7 +83,7 @@ func (s *Server) Handler(conn net.Conn) {
 		case <-isAlive:
 			// 如果这里为空， 则或继续执行随后的 case 。
 			// 语法小技巧
-		case <-time.After(time.Second * 10):
+		case <-time.After(time.Second * 10 * 60):
 			// time.After 是计时器， 返回一个通道
 			// 如果执行 time.After 则刷新计时器
 			// 当 case 获取到数据，表示计时器超时，执行下线操作； 否则阻塞。
