@@ -3,17 +3,15 @@ package client
 import (
 	"fmt"
 	"net"
-
-	"github.com/sirupsen/logrus"
 )
 
 type Client struct {
 	ServerAddr string
-	ServerPort uint16
+	ServerPort int
 	conn       net.Conn
 }
 
-func NewClient(ip string, port uint16) *Client {
+func NewClient(ip string, port int) *Client {
 	c := &Client{
 		ServerAddr: ip,
 		ServerPort: port,
@@ -21,15 +19,15 @@ func NewClient(ip string, port uint16) *Client {
 	return c
 }
 
-func (c *Client) Dial() bool {
+func (c *Client) Dial() error {
 
 	address := fmt.Sprintf("%s:%d", c.ServerAddr, c.ServerPort)
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
-		logrus.Errorf("dial server %s failed, err: %v", address, err)
-		return false
+		return err
 	}
 
 	c.conn = conn
-	return true
+
+	return nil
 }
