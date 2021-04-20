@@ -5,6 +5,8 @@ import (
 	"net"
 	"regexp"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 type User struct {
@@ -109,4 +111,18 @@ func (u *User) Rename(name string) {
 	u.Name = name
 	u.server.OnlineUsers[u.Name] = u
 
+}
+
+func (u *User) Kickoff() {
+	u.server.userlock.Lock()
+	defer u.server.userlock.Unlock()
+
+	// 删除在线记录
+	delete(u.server.OnlineUsers, u.Name)
+	// 发送通知
+	_, _ = u.conn.Write([]byte("长时间不活跃，你已经被系统踢下线"))
+	// 关闭链接
+	if err := u.conn.Close(); err != nil {
+		logrus.Errorf("close %s connect failed: %v", u.Addr, err)
+	}
 }

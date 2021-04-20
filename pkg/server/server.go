@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -46,6 +47,8 @@ func (s *Server) Handler(conn net.Conn) {
 	// 4. 用户接受消息
 	go user.ListenMessage()
 
+	// 6. 用户存活检测
+	isAlive := make(chan bool)
 	// 5. 服务器接受用户消息并广播
 	go func() {
 		buf := make([]byte, 4096)
@@ -65,10 +68,25 @@ func (s *Server) Handler(conn net.Conn) {
 			// 发送用户消息, 不发送 '\n'
 			msg := buf[:n-1]
 			user.DoMessage(string(msg))
-		}
 
+			// 6.1 刷新计时器
+			isAlive <- true
+		}
 	}()
 
+	for {
+		select {
+		case <-isAlive:
+			// 如果这里为空， 则或继续执行随后的 case 。
+			// 语法小技巧
+		case <-time.After(time.Second * 10):
+			// time.After 是计时器， 返回一个通道
+			// 如果执行 time.After 则刷新计时器
+			// 当 case 获取到数据，表示计时器超时，执行下线操作； 否则阻塞。
+			user.Kickoff()
+			return
+		}
+	}
 }
 
 func (s *Server) ListenMessager() {
